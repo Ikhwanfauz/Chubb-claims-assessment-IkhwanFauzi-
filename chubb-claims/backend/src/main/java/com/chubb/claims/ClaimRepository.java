@@ -1,5 +1,7 @@
 package com.chubb.claims;
 
+import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +26,20 @@ interface ClaimRepository extends JpaRepository<Claim, UUID> {
     interface WorkloadCount {
         String getOfficer();
         Claim.Status getStatus();
+        long getClaimCount();
+    }
+
+    @Query("""
+            select c.estimateCurrency as currency, sum(c.estimatedAmount) as amount, count(c) as claimCount
+            from Claim c
+            where c.status in :statuses
+            group by c.estimateCurrency
+            """)
+    List<ExposureCount> sumExposureByCurrency(Collection<Claim.Status> statuses);
+
+    interface ExposureCount {
+        String getCurrency();
+        BigDecimal getAmount();
         long getClaimCount();
     }
 

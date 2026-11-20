@@ -1,14 +1,17 @@
 package com.chubb.claims;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -81,6 +85,11 @@ class ClaimController {
         return workflow.provideInformation(id, requestId, request.answer());
     }
 
+    @PutMapping("/{id}/estimate")
+    ClaimResponse updateEstimate(@PathVariable UUID id, @Valid @RequestBody UpdateEstimate request) {
+        return workflow.updateEstimate(id, request.amount(), request.currency());
+    }
+
     @ExceptionHandler(InvalidClaimTransition.class)
     ProblemDetail invalidTransition(InvalidClaimTransition error) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, error.getMessage());
@@ -96,6 +105,11 @@ class ClaimController {
     record RequestInformation(@NotBlank @Size(max = 1000) String question) {}
 
     record ProvideInformation(@NotBlank @Size(max = 2000) String answer) {}
+
+    record UpdateEstimate(
+            @NotNull @PositiveOrZero @Digits(integer = 12, fraction = 3) BigDecimal amount,
+            @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency
+    ) {}
 
     record SubmitClaim(
             @NotNull Claim.Type type,

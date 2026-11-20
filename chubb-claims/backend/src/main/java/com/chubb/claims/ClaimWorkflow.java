@@ -1,5 +1,7 @@
 package com.chubb.claims;
 
+import java.math.BigDecimal;
+import java.util.Currency;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -40,6 +42,24 @@ class ClaimWorkflow {
     public ClaimResponse provideInformation(UUID id, UUID requestId, String answer) {
         var claim = lockClaim(id);
         claim.provideInformation(requestId, answer);
+        return claim.toResponse();
+    }
+
+    @Transactional
+    public ClaimResponse updateEstimate(UUID id, BigDecimal amount, String code) {
+        Currency currency;
+        try {
+            currency = Currency.getInstance(code);
+        } catch (IllegalArgumentException error) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown currency code");
+        }
+        int fractionDigits = currency.getDefaultFractionDigits();
+        if (fractionDigits < 0 || amount.stripTrailingZeros().scale() > fractionDigits) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid amount precision for currency");
+        }
+
+        var claim = lockClaim(id);
+        claim.updateEstimate(amount.setScale(fractionDigits), code);
         return claim.toResponse();
     }
 

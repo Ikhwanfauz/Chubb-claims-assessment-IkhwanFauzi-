@@ -25,3 +25,8 @@
 
 - Asked AI to add a workload summary with claim counts by status and officer.
 - Candidate verification: I called the endpoint locally and confirmed that it returned 3 total claims, 2 open claims, and 1 open claim assigned to Officer A.
+
+## Milestone 5 — Outstanding exposure
+
+- Asked AI to add an outstanding exposure summary grouped by currency.
+- Candidate verification: I recorded a MYR 1,250.50 estimate on a claim under review. The summary returned one MYR claim worth 1,250.50 and two open claims without estimates.

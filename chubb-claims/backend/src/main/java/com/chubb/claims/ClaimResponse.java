@@ -1,5 +1,6 @@
 package com.chubb.claims;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -14,7 +15,9 @@ public record ClaimResponse(
         Instant submittedAt,
         String assignedOfficer,
         String decisionReason,
-        InformationRequest informationRequest
+        InformationRequest informationRequest,
+        BigDecimal estimatedAmount,
+        String estimateCurrency
 ) {
     public record InformationRequest(UUID id, String question, String answer) {}
 }

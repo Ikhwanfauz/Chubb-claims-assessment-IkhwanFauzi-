@@ -97,8 +97,7 @@ Unassigned claims contribute to the overall counts. Each officer row represents
 claims assigned to that officer, including closed claims. The officer keys use
 the demo names entered at assignment. The database groups counts in one query.
 
-The totals measure claim volume. Monetary liability requires an estimated amount
-and currency on each claim. Officer figures are counts by current state.
+Officer figures are counts by current state. Use the exposure endpoint below for monetary estimates.
 
 With the backend running, query the summary in a second PowerShell terminal:
 
@@ -109,3 +108,30 @@ Invoke-RestMethod 'http://localhost:8080/api/staff/workload' | ConvertTo-Json -D
 A new claim increases the overall `SUBMITTED` count. Assign it to an officer and
 check again. The claim moves to `UNDER_REVIEW` and contributes to that officer's
 open workload.
+
+## Outstanding exposure
+
+While a claim is `UNDER_REVIEW`, an officer can set or replace a loss estimate using
+`PUT /api/claims/{id}/estimate` with `{"amount":1250.50,"currency":"MYR"}`.
+The endpoint accepts nonnegative decimal amounts, validates the currency code and its
+minor-unit precision, and returns the updated claim. The estimate remains on the claim
+after closure.
+
+`GET /api/staff/exposure` returns the sum and claim count for each currency across
+open claims. `openClaimsWithoutEstimate` counts open claims whose exposure is still
+unknown. A recorded zero is a known estimate. When a claim is settled or rejected, its
+estimate leaves the outstanding total. The summary uses the latest staff-entered
+estimates and performs no currency conversion.
+
+### Test exposure in PowerShell
+
+```powershell
+$api = 'http://localhost:8080/api/claims'
+$claim = Invoke-RestMethod -Method Post -Uri $api -ContentType 'application/json' -Body '{"type":"PROPERTY","market":"MY","incidentDate":"2026-01-15","description":"Sample property damage for exposure review."}'
+$url = "$api/$($claim.id)"
+$null = Invoke-RestMethod -Method Post -Uri "$url/assignment" -ContentType 'application/json' -Body '{"officer":"Officer A"}'
+$null = Invoke-RestMethod -Method Put -Uri "$url/estimate" -ContentType 'application/json' -Body '{"amount":1250.50,"currency":"MYR"}'
+Invoke-RestMethod 'http://localhost:8080/api/staff/exposure' | ConvertTo-Json -Depth 5
+```
+
+The MYR amount increases by 1250.50 and the MYR claim count increases by one.

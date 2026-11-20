@@ -1,5 +1,6 @@
 package com.chubb.claims;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -59,6 +60,12 @@ public class Claim {
     @Column(length = 2000)
     private String informationAnswer;
 
+    @Column(precision = 15, scale = 3)
+    private BigDecimal estimatedAmount;
+
+    @Column(length = 3)
+    private String estimateCurrency;
+
     protected Claim() {}
 
     Claim(Type type, String market, LocalDate incidentDate, String description) {
@@ -94,6 +101,12 @@ public class Claim {
         status = Status.UNDER_REVIEW;
     }
 
+    void updateEstimate(BigDecimal amount, String currency) {
+        requireStatus(Status.UNDER_REVIEW);
+        estimatedAmount = amount;
+        estimateCurrency = currency;
+    }
+
     void decide(Outcome outcome, String reason) {
         requireStatus(Status.UNDER_REVIEW);
         this.status = switch (outcome) {
@@ -113,6 +126,6 @@ public class Claim {
         var informationRequest = informationRequestId == null ? null
                 : new ClaimResponse.InformationRequest(informationRequestId, informationQuestion, informationAnswer);
         return new ClaimResponse(id, type, market, incidentDate, description, status, submittedAt,
-                assignedOfficer, decisionReason, informationRequest);
+                assignedOfficer, decisionReason, informationRequest, estimatedAmount, estimateCurrency);
     }
 }
