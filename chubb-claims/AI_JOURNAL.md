@@ -42,6 +42,7 @@
 
 ## Final review
 
+- I spent approximately three hours on the assessment. About two hours went into the core application, with most of that time spent on the backend. I spent about 30 minutes integrating and testing Kafka, then used the final 30 minutes to review the documentation and prepare the submission.
 - I kept claim decisions on REST so staff can see the saved status immediately. Kafka handles the follow-up event asynchronously after the decision is committed.
 - I kept the Kafka consumer focused on logging so I could verify event delivery within the timebox. Email delivery and durable retries are follow-up work.
 - During the Kafka browser demo, I entered a future incident date and saw the generic message `Invalid request content`. I corrected the date and submitted the claim successfully. I would improve the form by showing a field-specific message that explains which dates are allowed.

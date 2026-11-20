@@ -217,8 +217,3 @@ From the Angular portal, pick up a new claim and settle or reject it. In the
 backend terminal, look for a line containing `Consumed ClaimDecisionRecorded`,
 the claim ID and the outcome.
 
-## Milestone 7 — Kafka decision events
-
-- Asked AI to add Kafka for asynchronous claim decision events.
-- A decision is saved through REST first. After the database commit, the backend publishes an event to Kafka, and the demo consumer logs it.
-- Candidate verification: I ran Kafka and Spring Boot on Windows, settled a claim in the Angular staff portal, and confirmed that the backend consumer logged the matching claim ID with `status=SETTLED`.
