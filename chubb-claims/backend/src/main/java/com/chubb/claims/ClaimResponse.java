@@ -11,5 +11,7 @@ public record ClaimResponse(
         LocalDate incidentDate,
         String description,
         Claim.Status status,
-        Instant submittedAt
+        Instant submittedAt,
+        String assignedOfficer,
+        String decisionReason
 ) {}

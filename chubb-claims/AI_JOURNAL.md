@@ -9,3 +9,8 @@
 - Candidate verification: I ran the Spring Boot backend locally on Windows.
   I submitted a sample motor claim via POST, then retrieved it via GET using
   the returned claim ID. The claim details matched and the status was SUBMITTED.
+
+  ## Milestone 2 — Staff claim workflow
+
+- Asked AI to continue with the staff claim workflow. It added a claim queue, officer assignment, and settlement or rejection decisions.
+- Candidate verification: I ran the backend locally, assigned a new claim to Officer A, and saw its status change to `UNDER_REVIEW`. I settled it and verified that a separate GET request returned `SETTLED`.

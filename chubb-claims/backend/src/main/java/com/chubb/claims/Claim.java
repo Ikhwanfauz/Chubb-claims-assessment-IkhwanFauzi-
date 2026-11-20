@@ -11,12 +11,15 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "claims")
 public class Claim {
     public enum Type { MOTOR, PROPERTY }
-    public enum Status { SUBMITTED }
+    public enum Status { SUBMITTED, UNDER_REVIEW, SETTLED, REJECTED }
+    public enum Outcome { SETTLED, REJECTED }
 
     @Id
     private UUID id;
@@ -35,8 +38,15 @@ public class Claim {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 32)
     private Status status;
+
+    @Column(length = 80)
+    private String assignedOfficer;
+
+    @Column(length = 1000)
+    private String decisionReason;
 
     @Column(nullable = false, updatable = false)
     private Instant submittedAt;
@@ -53,7 +63,28 @@ public class Claim {
         this.submittedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 
+    void assign(String officer) {
+        requireStatus(Status.SUBMITTED);
+        this.assignedOfficer = officer.strip();
+        this.status = Status.UNDER_REVIEW;
+    }
+
+    void decide(Outcome outcome, String reason) {
+        requireStatus(Status.UNDER_REVIEW);
+        this.status = switch (outcome) {
+            case SETTLED -> Status.SETTLED;
+            case REJECTED -> Status.REJECTED;
+        };
+        this.decisionReason = reason.strip();
+    }
+
+    private void requireStatus(Status expected) {
+        if (status != expected) {
+            throw new InvalidClaimTransition("Expected " + expected + " but claim is " + status);
+        }
+    }
+
     ClaimResponse toResponse() {
-        return new ClaimResponse(id, type, market, incidentDate, description, status, submittedAt);
+        return new ClaimResponse(id, type, market, incidentDate, description, status, submittedAt, assignedOfficer, decisionReason);
     }
 }
