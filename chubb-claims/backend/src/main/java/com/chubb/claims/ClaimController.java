@@ -70,6 +70,17 @@ class ClaimController {
         return workflow.decide(id, request.outcome(), request.reason());
     }
 
+    @PostMapping("/{id}/information-requests")
+    ClaimResponse requestInformation(@PathVariable UUID id, @Valid @RequestBody RequestInformation request) {
+        return workflow.requestInformation(id, request.question());
+    }
+
+    @PostMapping("/{id}/information-requests/{requestId}/response")
+    ClaimResponse provideInformation(@PathVariable UUID id, @PathVariable UUID requestId,
+                                     @Valid @RequestBody ProvideInformation request) {
+        return workflow.provideInformation(id, requestId, request.answer());
+    }
+
     @ExceptionHandler(InvalidClaimTransition.class)
     ProblemDetail invalidTransition(InvalidClaimTransition error) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, error.getMessage());
@@ -81,6 +92,10 @@ class ClaimController {
             @NotNull Claim.Outcome outcome,
             @NotBlank @Size(max = 1000) String reason
     ) {}
+
+    record RequestInformation(@NotBlank @Size(max = 1000) String question) {}
+
+    record ProvideInformation(@NotBlank @Size(max = 2000) String answer) {}
 
     record SubmitClaim(
             @NotNull Claim.Type type,

@@ -57,3 +57,31 @@ Invoke-RestMethod -Uri $claimUrl
 ```
 
 Expect `UNDER_REVIEW` after assignment and `SETTLED` after the decision and lookup.
+
+## Request additional information
+
+An officer can ask a question while the claim is `UNDER_REVIEW`. The claim moves to `AWAITING_INFORMATION` and appears in that status filter. The claimant can read the question through the claim lookup and reply using the request ID. The reply sends the claim back to `UNDER_REVIEW`, and the assigned officer can continue to a decision.
+
+| Request | Body |
+| --- | --- |
+| `POST /api/claims/{id}/information-requests` | `{"question":"Where is the damaged panel?"}` |
+| `POST /api/claims/{id}/information-requests/{requestId}/response` | `{"answer":"The rear left panel."}` |
+
+The response and claim lookup include an `informationRequest` object with the latest question, request ID and answer. The demo keeps one request at a time and stores the latest exchange. A new request replaces the previous exchange after it has been answered. A stale or duplicate reply returns `409 Conflict`. The claimant checks for updates by looking up the claim.
+
+### Test the information exchange in PowerShell
+
+```powershell
+$api = 'http://localhost:8080/api/claims'
+$claim = Invoke-RestMethod -Method Post -Uri $api -ContentType 'application/json' -Body '{"type":"MOTOR","market":"MY","incidentDate":"2026-01-15","description":"Sample damage for information review."}'
+$claimUrl = "$api/$($claim.id)"
+Invoke-RestMethod -Method Post -Uri "$claimUrl/assignment" -ContentType 'application/json' -Body '{"officer":"Officer A"}'
+$pending = Invoke-RestMethod -Method Post -Uri "$claimUrl/information-requests" -ContentType 'application/json' -Body '{"question":"Where is the damaged panel?"}'
+$pending.status
+$replyUrl = "$claimUrl/information-requests/$($pending.informationRequest.id)/response"
+$review = Invoke-RestMethod -Method Post -Uri $replyUrl -ContentType 'application/json' -Body '{"answer":"The rear left panel."}'
+$review.status
+$review.informationRequest.answer
+```
+
+Expect `AWAITING_INFORMATION` after the question, then `UNDER_REVIEW` and the submitted answer after the reply.

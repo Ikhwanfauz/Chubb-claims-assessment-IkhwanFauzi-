@@ -14,3 +14,9 @@
 
 - Asked AI to continue with the staff claim workflow. It added a claim queue, officer assignment, and settlement or rejection decisions.
 - Candidate verification: I ran the backend locally, assigned a new claim to Officer A, and saw its status change to `UNDER_REVIEW`. I settled it and verified that a separate GET request returned `SETTLED`.
+
+## Milestone 3 — Additional information requests
+
+- Asked AI to add a flow for officers to request more information and for claimants to reply.
+- AI implementation: the claim stores the latest question and answer. A request ID prevents replies to an older question from being applied to the current one.
+- Candidate verification: I tested the flow locally. The claim moved to `AWAITING_INFORMATION` when the officer asked a question and returned to `UNDER_REVIEW` after I replied. The API returned the answer I submitted.

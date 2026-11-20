@@ -13,5 +13,8 @@ public record ClaimResponse(
         Claim.Status status,
         Instant submittedAt,
         String assignedOfficer,
-        String decisionReason
-) {}
+        String decisionReason,
+        InformationRequest informationRequest
+) {
+    public record InformationRequest(UUID id, String question, String answer) {}
+}

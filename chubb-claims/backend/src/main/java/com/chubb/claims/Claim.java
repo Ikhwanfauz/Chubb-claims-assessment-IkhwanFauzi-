@@ -18,7 +18,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "claims")
 public class Claim {
     public enum Type { MOTOR, PROPERTY }
-    public enum Status { SUBMITTED, UNDER_REVIEW, SETTLED, REJECTED }
+    public enum Status { SUBMITTED, UNDER_REVIEW, AWAITING_INFORMATION, SETTLED, REJECTED }
     public enum Outcome { SETTLED, REJECTED }
 
     @Id
@@ -51,6 +51,14 @@ public class Claim {
     @Column(nullable = false, updatable = false)
     private Instant submittedAt;
 
+    private UUID informationRequestId;
+
+    @Column(length = 1000)
+    private String informationQuestion;
+
+    @Column(length = 2000)
+    private String informationAnswer;
+
     protected Claim() {}
 
     Claim(Type type, String market, LocalDate incidentDate, String description) {
@@ -69,6 +77,23 @@ public class Claim {
         this.status = Status.UNDER_REVIEW;
     }
 
+    void requestInformation(String question) {
+        requireStatus(Status.UNDER_REVIEW);
+        informationRequestId = UUID.randomUUID();
+        informationQuestion = question.strip();
+        informationAnswer = null;
+        status = Status.AWAITING_INFORMATION;
+    }
+
+    void provideInformation(UUID requestId, String answer) {
+        requireStatus(Status.AWAITING_INFORMATION);
+        if (!requestId.equals(informationRequestId)) {
+            throw new InvalidClaimTransition("This information request is no longer current");
+        }
+        informationAnswer = answer.strip();
+        status = Status.UNDER_REVIEW;
+    }
+
     void decide(Outcome outcome, String reason) {
         requireStatus(Status.UNDER_REVIEW);
         this.status = switch (outcome) {
@@ -85,6 +110,9 @@ public class Claim {
     }
 
     ClaimResponse toResponse() {
-        return new ClaimResponse(id, type, market, incidentDate, description, status, submittedAt, assignedOfficer, decisionReason);
+        var informationRequest = informationRequestId == null ? null
+                : new ClaimResponse.InformationRequest(informationRequestId, informationQuestion, informationAnswer);
+        return new ClaimResponse(id, type, market, incidentDate, description, status, submittedAt,
+                assignedOfficer, decisionReason, informationRequest);
     }
 }

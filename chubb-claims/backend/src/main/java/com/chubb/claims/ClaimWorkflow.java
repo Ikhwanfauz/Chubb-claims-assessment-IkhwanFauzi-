@@ -29,6 +29,20 @@ class ClaimWorkflow {
         return claim.toResponse();
     }
 
+    @Transactional
+    public ClaimResponse requestInformation(UUID id, String question) {
+        var claim = lockClaim(id);
+        claim.requestInformation(question);
+        return claim.toResponse();
+    }
+
+    @Transactional
+    public ClaimResponse provideInformation(UUID id, UUID requestId, String answer) {
+        var claim = lockClaim(id);
+        claim.provideInformation(requestId, answer);
+        return claim.toResponse();
+    }
+
     private Claim lockClaim(UUID id) {
         return claims.findForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Claim not found"));

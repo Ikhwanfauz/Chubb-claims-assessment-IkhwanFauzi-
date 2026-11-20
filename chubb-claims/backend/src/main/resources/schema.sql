@@ -1,3 +1,20 @@
 -- Convert the H2 enum column created in milestone 1 so existing claims
 -- can move into statuses introduced in this milestone.
 ALTER TABLE IF EXISTS claims ALTER COLUMN status SET DATA TYPE VARCHAR(32);
+
+-- Hibernate added a status CHECK to fresh milestone 2 databases. Replace it
+-- with a named constraint so later milestones can update it predictably.
+EXECUTE IMMEDIATE COALESCE((
+    SELECT 'ALTER TABLE PUBLIC.CLAIMS DROP CONSTRAINT "' || REPLACE(tc.CONSTRAINT_NAME, '"', '""') || '"'
+    FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+    JOIN INFORMATION_SCHEMA.CHECK_CONSTRAINTS cc
+        ON cc.CONSTRAINT_CATALOG = tc.CONSTRAINT_CATALOG
+        AND cc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA
+        AND cc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+    WHERE tc.TABLE_SCHEMA = 'PUBLIC' AND tc.TABLE_NAME = 'CLAIMS'
+        AND tc.CONSTRAINT_NAME <> 'CK_CLAIMS_STATUS'
+        AND cc.CHECK_CLAUSE LIKE '"STATUS" IN(%'
+    FETCH FIRST 1 ROW ONLY
+), 'ALTER TABLE IF EXISTS claims DROP CONSTRAINT IF EXISTS CK_CLAIMS_STATUS_UNUSED');
+ALTER TABLE IF EXISTS claims ADD CONSTRAINT IF NOT EXISTS CK_CLAIMS_STATUS
+    CHECK (status IN ('SUBMITTED', 'UNDER_REVIEW', 'AWAITING_INFORMATION', 'SETTLED', 'REJECTED'));
