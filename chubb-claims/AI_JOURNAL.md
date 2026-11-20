@@ -30,3 +30,8 @@
 
 - Asked AI to add an outstanding exposure summary grouped by currency.
 - Candidate verification: I recorded a MYR 1,250.50 estimate on a claim under review. The summary returned one MYR claim worth 1,250.50 and two open claims without estimates.
+
+## Milestone 6 — Angular claims portal
+
+- Asked AI to connect the claimant and staff views to the Spring Boot API.
+- Candidate verification: I submitted a claim in the browser, assigned it to an officer, requested additional information, replied as the claimant, and recorded a settlement. I checked the claim again and confirmed that the portal showed `SETTLED` and the decision reason.

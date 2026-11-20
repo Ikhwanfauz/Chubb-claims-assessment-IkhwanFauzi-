@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "projects": {
+    "claims": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "index": "src/index.html",
+            "styles": ["src/styles.css"],
+            "tsConfig": "tsconfig.json",
+            "outputPath": "dist/claims"
+          }
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "buildTarget": "claims:build",
+            "proxyConfig": "proxy.conf.json"
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "analytics": "c2b82758-61b1-4404-b718-b520dbccdc05"
+  }
+}

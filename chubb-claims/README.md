@@ -135,3 +135,29 @@ Invoke-RestMethod 'http://localhost:8080/api/staff/exposure' | ConvertTo-Json -D
 ```
 
 The MYR amount increases by 1250.50 and the MYR claim count increases by one.
+
+## Run the Angular portal
+
+Start the Spring Boot backend on port 8080. In a second terminal, from the
+`chubb-claims` project folder, use Node.js 22.12+ (22.x) or Node.js 24:
+
+```powershell
+cd frontend
+npm ci
+npm start
+```
+
+Open http://localhost:4200. The Angular dev server proxies `/api` requests
+to Spring Boot. Run `npm run build` in `frontend` to compile the frontend.
+
+### Demo walkthrough
+
+1. In **Claimant**, report an incident. The portal fills in the returned claim ID.
+2. In **Staff**, select the claim, pick it up, and save an estimate. Check the
+   workload and exposure summaries. Then send a question to the claimant.
+3. Return to **Claimant**, click **Check status**, and answer the question.
+4. Return to **Staff**, record a decision, and check that outstanding exposure
+   reflects the closure. In **Claimant**, click **Check status** to read the decision.
+
+The Claimant and Staff tabs are demo views over the same API. The demo uses
+manual refresh for external updates and has no authentication or access controls.

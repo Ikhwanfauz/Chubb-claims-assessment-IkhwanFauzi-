@@ -1,0 +1,163 @@
+<header>
+  <div class="shell bar">
+    <strong>APAC Claims Portal</strong>
+    <nav aria-label="Portal views">
+      <button type="button" [class.active]="view() === 'claimant'" [attr.aria-pressed]="view() === 'claimant'" [disabled]="busy()" (click)="switchView('claimant')">Claimant</button>
+      <button type="button" [class.active]="view() === 'staff'" [attr.aria-pressed]="view() === 'staff'" [disabled]="busy()" (click)="switchView('staff')">Staff</button>
+    </nav>
+  </div>
+</header>
+<main class="shell">
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @if (busy()) { <p class="progress" role="status">Updating claims…</p> }
+  @if (view() === 'claimant') {
+    <h1>Claimant portal</h1>
+    <div class="columns">
+      <section class="card">
+        <h2>Report an incident</h2>
+        <form #reportForm="ngForm" (ngSubmit)="submit()">
+          <label>Claim type
+            <select name="type" [(ngModel)]="submission.type">
+              <option value="MOTOR">Motor</option><option value="PROPERTY">Property</option>
+            </select>
+          </label>
+          <label>Market code
+            <input name="market" [(ngModel)]="submission.market" required pattern="[A-Za-z]{2}" maxlength="2">
+          </label>
+          <label>Incident date
+            <input type="date" name="date" [(ngModel)]="submission.incidentDate" required>
+          </label>
+          <label>Description
+            <textarea name="description" [(ngModel)]="submission.description" required maxlength="2000"></textarea>
+          </label>
+          <button class="primary" [disabled]="busy() || !reportForm.valid">Submit claim</button>
+        </form>
+      </section>
+      <section class="card">
+        <h2>Track a claim</h2>
+        <form #trackForm="ngForm" (ngSubmit)="track()">
+          <label>Claim ID
+            <input name="lookup" [(ngModel)]="lookup" required pattern="[0-9a-fA-F-]{36}" spellcheck="false">
+          </label>
+          <button [disabled]="busy() || !trackForm.valid">Check status</button>
+        </form>
+        @if (claimantClaim(); as claim) {
+          <div class="detail">
+            <span class="status">{{ claim.status.replaceAll('_', ' ') }}</span>
+            <p class="claim-id">{{ claim.id }}</p>
+            <p>{{ claim.description }}</p>
+            @if (claim.informationRequest; as request) {
+              <p><strong>Officer question</strong> · {{ request.question }}</p>
+              @if (request.answer) {
+                <p><strong>Your response</strong> · {{ request.answer }}</p>
+              }
+              @if (claim.status === 'AWAITING_INFORMATION') {
+                <form #replyForm="ngForm" (ngSubmit)="reply(claim)">
+                  <label>Your answer
+                    <textarea name="answer" [(ngModel)]="answer" required maxlength="2000"></textarea>
+                  </label>
+                  <button class="primary" [disabled]="busy() || !replyForm.valid">Send answer</button>
+                </form>
+              }
+            }
+            @if (claim.decisionReason) { <p><strong>Decision reason</strong> · {{ claim.decisionReason }}</p> }
+          </div>
+        }
+      </section>
+    </div>
+  } @else {
+    <div class="heading">
+      <h1>Staff workspace</h1>
+      <button type="button" [disabled]="busy()" (click)="refresh()">Refresh</button>
+    </div>
+    <div class="columns metrics">
+      @if (workload(); as summary) {
+        <section class="card">
+          <h2>Workload</h2>
+          <p><strong>{{ summary.openClaims }}</strong> open / {{ summary.totalClaims }} total</p>
+          <dl>
+            @for (status of statusOptions; track status) {
+              <dt>{{ status.replaceAll('_', ' ') }}</dt><dd>{{ summary.byStatus[status] }}</dd>
+            }
+          </dl>
+          @for (row of summary.byOfficer; track row.officer) {
+            <p><strong>{{ row.officer }}</strong> · {{ row.openClaims }} open</p>
+          }
+        </section>
+      }
+      @if (exposure(); as summary) {
+        <section class="card">
+          <h2>Outstanding exposure</h2>
+          @for (row of summary.byCurrency | keyvalue; track row.key) {
+            <p><strong>{{ row.value.estimatedAmount | currency:row.key:'code' }}</strong> · {{ row.value.claimCount }} claims</p>
+          } @empty {
+            <p>No recorded estimates for open claims.</p>
+          }
+          <p>{{ summary.openClaimsWithoutEstimate }} open claims without estimates</p>
+        </section>
+      }
+    </div>
+    <div class="columns">
+      <section class="card">
+        <h2>Claim queue</h2>
+        @for (claim of claims(); track claim.id) {
+          <button class="queue-item" type="button" [class.chosen]="selected()?.id === claim.id" [attr.aria-pressed]="selected()?.id === claim.id" [disabled]="busy()" (click)="select(claim)">
+            <span><strong>{{ claim.type }} · {{ claim.market }}</strong><span class="queue-desc">{{ claim.description }}</span></span>
+            <span class="status">{{ claim.status.replaceAll('_', ' ') }}</span>
+          </button>
+        } @empty {
+          @if (workload()) { <p>No claims yet.</p> }
+        }
+      </section>
+      <section class="card">
+        <h2>Claim review</h2>
+        @if (selected(); as claim) {
+          <span class="status">{{ claim.status.replaceAll('_', ' ') }}</span>
+          <p class="claim-id">{{ claim.id }}</p>
+          <p>{{ claim.description }}</p>
+          @if (claim.assignedOfficer) { <p><strong>Assigned to</strong> · {{ claim.assignedOfficer }}</p> }
+          @if (claim.estimatedAmount !== null && claim.estimateCurrency) {
+            <p><strong>Current estimate</strong> · {{ claim.estimatedAmount | currency:claim.estimateCurrency:'code' }}</p>
+          }
+          @if (claim.informationRequest; as request) {
+            <p><strong>Question</strong> · {{ request.question }}</p>
+            @if (request.answer) { <p><strong>Answer</strong> · {{ request.answer }}</p> }
+          }
+          @if (claim.decisionReason) { <p><strong>Decision reason</strong> · {{ claim.decisionReason }}</p> }
+          @if (claim.status === 'SUBMITTED') {
+            <form #assignForm="ngForm" (ngSubmit)="assign(claim)">
+              <label>Officer name <input name="officer" [(ngModel)]="officer" required maxlength="80"></label>
+              <button class="primary" [disabled]="busy() || !assignForm.valid">Pick up claim</button>
+            </form>
+          }
+          @if (claim.status === 'UNDER_REVIEW') {
+            <form class="detail" #questionForm="ngForm" (ngSubmit)="ask(claim)">
+              <label>Question for claimant
+                <textarea name="question" [(ngModel)]="question" required maxlength="1000"></textarea>
+              </label>
+              <button [disabled]="busy() || !questionForm.valid">Request information</button>
+            </form>
+            <form class="detail" #estimateForm="ngForm" (ngSubmit)="saveEstimate(claim)">
+              <div class="fields">
+                <label>Estimated amount <input type="number" name="amount" [(ngModel)]="amount" required min="0" step="0.001"></label>
+                <label>Currency code <input name="currency" [(ngModel)]="currency" required pattern="[A-Za-z]{3}" maxlength="3"></label>
+              </div>
+              <button [disabled]="busy() || !estimateForm.valid">Save estimate</button>
+            </form>
+            <form class="detail" #decisionForm="ngForm" (ngSubmit)="decide(claim)">
+              <label>Outcome
+                <select name="outcome" [(ngModel)]="outcome">
+                  <option value="SETTLED">Settle</option><option value="REJECTED">Reject</option>
+                </select>
+              </label>
+              <label>Decision reason
+                <textarea name="reason" [(ngModel)]="reason" required maxlength="1000"></textarea>
+              </label>
+              <button class="primary" [disabled]="busy() || !decisionForm.valid">Record decision</button>
+            </form>
+          }
+        } @else { <p>Choose a claim from the queue.</p> }
+      </section>
+    </div>
+  }
+</main>
