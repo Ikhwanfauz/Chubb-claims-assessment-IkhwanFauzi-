@@ -161,3 +161,64 @@ to Spring Boot. Run `npm run build` in `frontend` to compile the frontend.
 
 The Claimant and Staff tabs are demo views over the same API. The demo uses
 manual refresh for external updates and has no authentication or access controls.
+
+## Architecture and trade-offs
+
+Angular uses REST for claim submission, lookup, staff actions and summary queries.
+The user gets the saved state or a validation error immediately. One Spring Boot
+service owns the claim workflow and H2 data. Claim updates lock one database row
+inside the transaction, which avoids competing changes to the same claim during
+staff review. The two Angular views share this API. H2 keeps the demo portable.
+
+Kafka is an optional asynchronous path for decisions. Once a settlement or
+rejection has committed to H2, the `kafka` profile publishes a
+`ClaimDecisionRecorded` event to `claims.decision-recorded.v1`, keyed by claim ID.
+The payload contains the claim ID, outcome and timestamp. The demo consumer logs
+the event. The claimant's tracking page continues to read the persisted decision.
+Email delivery, durable outbox retries, and authentication are future work. Broker
+or process failures after the database commit can leave a decision without an
+event. A production notification flow would use a transactional outbox and an
+idempotent consumer.
+
+## Run with Kafka
+
+Normal backend and Angular startup work independently of Kafka. To demonstrate
+events, start a local Kafka 4.1.2 broker in its own terminal:
+
+```powershell
+docker run --rm -p 127.0.0.1:9092:9092 apache/kafka:4.1.2
+```
+
+For a Windows setup with JDK 21, the [Apache Kafka 4.1.2 archive](https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz)
+also works without Docker. Extract the archive, enter the extracted Kafka folder,
+and run:
+
+```powershell
+(Get-Content .\config\server.properties) -replace '^log.dirs=.*', 'log.dirs=./claims-demo-data' |
+  Set-Content -Encoding Ascii .\config\claims-demo.properties
+$clusterId = java -cp ".\libs\*" kafka.tools.StorageTool random-uuid
+java -cp ".\libs\*" kafka.tools.StorageTool format --standalone --cluster-id $clusterId --config .\config\claims-demo.properties
+java -cp ".\libs\*" kafka.Kafka .\config\claims-demo.properties
+```
+
+Run the format command once per broker data directory. On later runs, use the
+last command with the previously created configuration.
+
+With the broker running, restart Spring Boot from `backend` with the Kafka profile:
+
+```powershell
+mvn spring-boot:run "-Dspring-boot.run.profiles=kafka"
+```
+
+If Maven was installed using a PowerShell path variable, replace `mvn` with
+`& $mvn`. Set `KAFKA_BOOTSTRAP_SERVERS` if the broker uses a different address.
+
+From the Angular portal, pick up a new claim and settle or reject it. In the
+backend terminal, look for a line containing `Consumed ClaimDecisionRecorded`,
+the claim ID and the outcome.
+
+## Milestone 7 — Kafka decision events
+
+- Asked AI to add Kafka for asynchronous claim decision events.
+- A decision is saved through REST first. After the database commit, the backend publishes an event to Kafka, and the demo consumer logs it.
+- Candidate verification: I ran Kafka and Spring Boot on Windows, settled a claim in the Angular staff portal, and confirmed that the backend consumer logged the matching claim ID with `status=SETTLED`.

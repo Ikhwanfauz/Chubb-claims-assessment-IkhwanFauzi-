@@ -1,9 +1,11 @@
 package com.chubb.claims;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Currency;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,8 +15,11 @@ import org.springframework.web.server.ResponseStatusException;
 class ClaimWorkflow {
     private final ClaimRepository claims;
 
-    ClaimWorkflow(ClaimRepository claims) {
+    private final ApplicationEventPublisher events;
+
+    ClaimWorkflow(ClaimRepository claims, ApplicationEventPublisher events) {
         this.claims = claims;
+        this.events = events;
     }
 
     @Transactional
@@ -28,7 +33,9 @@ class ClaimWorkflow {
     public ClaimResponse decide(UUID id, Claim.Outcome outcome, String reason) {
         var claim = lockClaim(id);
         claim.decide(outcome, reason);
-        return claim.toResponse();
+        var response = claim.toResponse();
+        events.publishEvent(new ClaimDecisionRecorded(id, response.status(), Instant.now()));
+        return response;
     }
 
     @Transactional
