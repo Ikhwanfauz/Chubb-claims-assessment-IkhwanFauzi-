@@ -20,3 +20,8 @@
 - Asked AI to add a flow for officers to request more information and for claimants to reply.
 - AI implementation: the claim stores the latest question and answer. A request ID prevents replies to an older question from being applied to the current one.
 - Candidate verification: I tested the flow locally. The claim moved to `AWAITING_INFORMATION` when the officer asked a question and returned to `UNDER_REVIEW` after I replied. The API returned the answer I submitted.
+
+## Milestone 4 — Staff workload summary
+
+- Asked AI to add a workload summary with claim counts by status and officer.
+- Candidate verification: I called the endpoint locally and confirmed that it returned 3 total claims, 2 open claims, and 1 open claim assigned to Officer A.

@@ -85,3 +85,27 @@ $review.informationRequest.answer
 ```
 
 Expect `AWAITING_INFORMATION` after the question, then `UNDER_REVIEW` and the submitted answer after the reply.
+
+## Staff workload summary
+
+`GET /api/staff/workload` returns a current snapshot across all markets. It includes
+`totalClaims`, `openClaims`, counts for every status in `byStatus`, and the same
+status counts per assigned officer in `byOfficer`.
+
+Open claims include `SUBMITTED`, `UNDER_REVIEW`, and `AWAITING_INFORMATION`.
+Unassigned claims contribute to the overall counts. Each officer row represents
+claims assigned to that officer, including closed claims. The officer keys use
+the demo names entered at assignment. The database groups counts in one query.
+
+The totals measure claim volume. Monetary liability requires an estimated amount
+and currency on each claim. Officer figures are counts by current state.
+
+With the backend running, query the summary in a second PowerShell terminal:
+
+```powershell
+Invoke-RestMethod 'http://localhost:8080/api/staff/workload' | ConvertTo-Json -Depth 5
+```
+
+A new claim increases the overall `SUBMITTED` count. Assign it to an officer and
+check again. The claim moves to `UNDER_REVIEW` and contributes to that officer's
+open workload.
